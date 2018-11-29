@@ -28,7 +28,7 @@ class ParameterDefinition:
     @property
     def enabled(self):
         return bool(getattr(self.args, self.dim_arg))
-    
+
     @enabled.setter
     def enabled(self, value):
         if value:
@@ -89,26 +89,26 @@ CLASSIFIER_PROPERTIES = {
 }
 
 NODE_LABEL_PARAM_DEFS = [
-    (NODE_LABEL_KEY, dict(dim="node_label_dim",    size="max_node_labels",    dropout="node_label_dropout",
+    (NODE_LABEL_KEY, dict(dim="node_label_dim", size="max_node_labels", dropout="node_label_dropout",
                           min_count="min_node_label_count"))
 ]
 PARAM_DEFS = [
-    ("c",            dict(dim="node_category_dim", size="max_node_categories")),
-    ("W",            dict(dim="word_dim_external", size="max_words_external", dropout="word_dropout_external",
-                          updated="update_word_vectors", filename="word_vectors", vocab="vocab"), dict(
-                                                                                 copy_from="w", lang_specific=True)),
-    ("w",            dict(dim="word_dim",       size="max_words",  dropout="word_dropout"),  dict(lang_specific=True)),
-    ("m",            dict(dim="lemma_dim",      size="max_lemmas", dropout="lemma_dropout"), dict(lang_specific=True)),
-    ("t",            dict(dim="tag_dim",        size="max_tags",   dropout="tag_dropout"),   dict(lang_specific=True)),
-    ("u",            dict(dim="pos_dim",        size="max_pos",    dropout="pos_dropout")),
-    ("d",            dict(dim="dep_dim",        size="max_deps",   dropout="dep_dropout")),
-    ("e",            dict(dim="edge_label_dim", size="max_edge_labels")),
-    ("p",            dict(dim="punct_dim",      size="max_puncts")),
-    ("A",            dict(dim="action_dim",     size="max_action_types")),
-    ("T",            dict(dim="ner_dim",        size="max_ner_types")),
-    ("#",            dict(dim="shape_dim",      size="max_shapes"),                          dict(lang_specific=True)),
-    ("^",            dict(dim="prefix_dim",     size="max_prefixes"),                        dict(lang_specific=True)),
-    ("$",            dict(dim="suffix_dim",     size="max_suffixes"),                        dict(lang_specific=True)),
+    ("c", dict(dim="node_category_dim", size="max_node_categories")),
+    ("W", dict(dim="word_dim_external", size="max_words_external", dropout="word_dropout_external",
+               updated="update_word_vectors", filename="word_vectors", vocab="vocab"), dict(
+        copy_from="w", lang_specific=True)),
+    ("w", dict(dim="word_dim", size="max_words", dropout="word_dropout"), dict(lang_specific=True)),
+    ("m", dict(dim="lemma_dim", size="max_lemmas", dropout="lemma_dropout"), dict(lang_specific=True)),
+    ("t", dict(dim="tag_dim", size="max_tags", dropout="tag_dropout"), dict(lang_specific=True)),
+    ("u", dict(dim="pos_dim", size="max_pos", dropout="pos_dropout")),
+    ("d", dict(dim="dep_dim", size="max_deps", dropout="dep_dropout")),
+    ("e", dict(dim="edge_label_dim", size="max_edge_labels")),
+    ("p", dict(dim="punct_dim", size="max_puncts")),
+    ("A", dict(dim="action_dim", size="max_action_types")),
+    ("T", dict(dim="ner_dim", size="max_ner_types")),
+    ("#", dict(dim="shape_dim", size="max_shapes"), dict(lang_specific=True)),
+    ("^", dict(dim="prefix_dim", size="max_prefixes"), dict(lang_specific=True)),
+    ("$", dict(dim="suffix_dim", size="max_suffixes"), dict(lang_specific=True)),
 ]
 
 
@@ -170,186 +170,206 @@ class Model:
                                                            node_dropout=self.config.args.node_dropout,
                                                            omit_features=self.config.args.omit_features)
             self.classifier = NeuralNetwork(self.config, labels)
-		elif self.is_bert:
-			from .classifiers.nn.bert import Bert
-			# TODO: Feature extractor
-			self.classifier = Bert()
+        elif self.is_bert:
+            from tupa.classifiers.bert import Bert
+            # TODO: Feature extractor
+            self.classifier = Bert()
+
         else:
             raise ValueError("Invalid model type: '%s'" % self.config.args.classifier)
-        self._update_input_params()
+            self._update_input_params()
 
-    def set_axis(self, axis, lang):
-        if axis is not None:
-            self.axis = axis
-        if self.axis is None:
-            self.axis = self.config.format
-        if lang is not None:
-            self.lang = lang
-        if self.lang is not None:
-            suffix = SEPARATOR + self.lang
-            if not self.axis.endswith(suffix):
-                self.axis += suffix
 
-    @property
-    def formats(self):
-        return [k.partition(SEPARATOR)[0] for k in self.classifier.labels]
+def set_axis(self, axis, lang):
+    if axis is not None:
+        self.axis = axis
+    if self.axis is None:
+        self.axis = self.config.format
+    if lang is not None:
+        self.lang = lang
+    if self.lang is not None:
+        suffix = SEPARATOR + self.lang
+        if not self.axis.endswith(suffix):
+            self.axis += suffix
 
-	@property
-	def is_bert(self):
-		return self.config.args.classifier in (BERT)
 
-    @property
-    def is_neural_network(self):
-        return self.config.args.classifier in (MLP, BIRNN, HIGHWAY_RNN, HIERARCHICAL_RNN)
+@property
+def formats(self):
+    return [k.partition(SEPARATOR)[0] for k in self.classifier.labels]
 
-    @property
-    def is_retrainable(self):
-        return ClassifierProperty.trainable_after_saving in self.classifier_properties
 
-    @property
-    def classifier_properties(self):
-        return CLASSIFIER_PROPERTIES[self.config.args.classifier]
+@property
+def is_bert(self):
+    return self.config.args.classifier in (BERT)
 
-    @property
-    def actions(self):
-        return self.classifier.labels[self.axis]
 
-    def init_actions(self):
-        return Actions(size=self.config.args.max_action_labels)
+@property
+def is_neural_network(self):
+    return self.config.args.classifier in (MLP, BIRNN, HIGHWAY_RNN, HIERARCHICAL_RNN)
 
-    def init_param(self, key):
-        if self.feature_extractor:
-            self.feature_extractor.init_param(key)
 
-    def init_node_labels(self):
-        node_labels = self.feature_params.get(NODE_LABEL_KEY)
-        if node_labels is None:
-            node_labels = self.node_label_param_def().create_from_config()
-            if self.is_neural_network:
-                self.feature_params[NODE_LABEL_KEY] = node_labels
-        self.init_param(NODE_LABEL_KEY)
-        node_labels.init_data()
-        return node_labels.data
+@property
+def is_retrainable(self):
+    return ClassifierProperty.trainable_after_saving in self.classifier_properties
 
-    def score(self, state, axis):
-        features = self.feature_extractor.extract_features(state)
-        return self.classifier.score(features, axis=axis), features  # scores is a NumPy array
 
-    def init_features(self, state, train):
+@property
+def classifier_properties(self):
+    return CLASSIFIER_PROPERTIES[self.config.args.classifier]
+
+
+@property
+def actions(self):
+    return self.classifier.labels[self.axis]
+
+
+def init_actions(self):
+    return Actions(size=self.config.args.max_action_labels)
+
+
+def init_param(self, key):
+    if self.feature_extractor:
+        self.feature_extractor.init_param(key)
+
+
+def init_node_labels(self):
+    node_labels = self.feature_params.get(NODE_LABEL_KEY)
+    if node_labels is None:
+        node_labels = self.node_label_param_def().create_from_config()
+        if self.is_neural_network:
+            self.feature_params[NODE_LABEL_KEY] = node_labels
+    self.init_param(NODE_LABEL_KEY)
+    node_labels.init_data()
+    return node_labels.data
+
+
+def score(self, state, axis):
+    features = self.feature_extractor.extract_features(state)
+    return self.classifier.score(features, axis=axis), features  # scores is a NumPy array
+
+
+def init_features(self, state, train):
+    self.init_model()
+    axes = [self.axis]
+    if self.config.args.node_labels and not self.config.args.use_gold_node_labels:
+        axes.append(NODE_LABEL_KEY)
+    self.classifier.init_features(self.feature_extractor.init_features(state), axes, train)
+
+
+def finalize(self, finished_epoch):
+    """
+    Copy model, finalizing features (new values will not be added during subsequent use) and classifier (update it)
+    :param finished_epoch: whether this is the end of an epoch (or just intermediate checkpoint), for bookkeeping
+    :return: a copy of this model with a new feature extractor and classifier (actually classifier may be the same)
+    """
+    self.config.print("Finalizing model", level=1)
+    self.init_model()
+    return Model(None, config=self.config.copy(), model=self, is_finalized=True,
+                 feature_extractor=self.feature_extractor.finalize(),
+                 classifier=self.classifier.finalize(finished_epoch=finished_epoch))
+
+
+def save(self, save_init=False):
+    """
+    Save feature and classifier parameters to files
+    """
+    if self.filename is not None:
         self.init_model()
-        axes = [self.axis]
-        if self.config.args.node_labels and not self.config.args.use_gold_node_labels:
-            axes.append(NODE_LABEL_KEY)
-        self.classifier.init_features(self.feature_extractor.init_features(state), axes, train)
+        try:
+            self.feature_extractor.save(self.filename, save_init=save_init)
+            node_labels = self.feature_extractor.params.get(NODE_LABEL_KEY)
+            skip_labels = (NODE_LABEL_KEY,) if node_labels and node_labels.size else ()
+            self.classifier.save(self.filename, skip_labels=skip_labels,
+                                 multilingual=self.config.args.multilingual,
+                                 omit_features=self.config.args.omit_features)
+            textutil.models["vocab"] = self.config.args.vocab
+            save_json(self.filename + ".nlp.json", textutil.models)
+            remove_backup(self.filename)
+        except Exception as e:
+            raise IOError("Failed saving model to '%s'" % self.filename) from e
 
-    def finalize(self, finished_epoch):
-        """
-        Copy model, finalizing features (new values will not be added during subsequent use) and classifier (update it)
-        :param finished_epoch: whether this is the end of an epoch (or just intermediate checkpoint), for bookkeeping
-        :return: a copy of this model with a new feature extractor and classifier (actually classifier may be the same)
-        """
-        self.config.print("Finalizing model", level=1)
-        self.init_model()
-        return Model(None, config=self.config.copy(), model=self, is_finalized=True,
-                     feature_extractor=self.feature_extractor.finalize(),
-                     classifier=self.classifier.finalize(finished_epoch=finished_epoch))
 
-    def save(self, save_init=False):
-        """
-        Save feature and classifier parameters to files
-        """
-        if self.filename is not None:
-            self.init_model()
+def load(self, is_finalized=True):
+    """
+    Load the feature and classifier parameters from files
+    :param is_finalized: whether loaded model should be finalized, or allow feature values to be added subsequently
+    """
+    if self.filename is not None:
+        try:
+            self.config.args.classifier = Classifier.get_property(self.filename, "type")
+            self.config.args.multilingual = Classifier.get_property(self.filename, "multilingual")
+            self.config.args.omit_features = Classifier.get_property(self.filename, "omit_features")
+            self.init_model(init_params=False)
+            self.feature_extractor.load(self.filename, order=[p.name for p in self.param_defs()])
+            if not is_finalized:
+                self.feature_extractor.unfinalize()
+            self._update_input_params()  # Must be before classifier.load() because it uses them to init the model
+            self.classifier.load(self.filename)
+            self.is_finalized = is_finalized
+            self.load_labels()
             try:
-                self.feature_extractor.save(self.filename, save_init=save_init)
-                node_labels = self.feature_extractor.params.get(NODE_LABEL_KEY)
-                skip_labels = (NODE_LABEL_KEY,) if node_labels and node_labels.size else ()
-                self.classifier.save(self.filename, skip_labels=skip_labels,
-                                     multilingual=self.config.args.multilingual,
-                                     omit_features=self.config.args.omit_features)
-                textutil.models["vocab"] = self.config.args.vocab
-                save_json(self.filename + ".nlp.json", textutil.models)
-                remove_backup(self.filename)
-            except Exception as e:
-                raise IOError("Failed saving model to '%s'" % self.filename) from e
-
-    def load(self, is_finalized=True):
-        """
-        Load the feature and classifier parameters from files
-        :param is_finalized: whether loaded model should be finalized, or allow feature values to be added subsequently
-        """
-        if self.filename is not None:
-            try:
-                self.config.args.classifier = Classifier.get_property(self.filename, "type")
-                self.config.args.multilingual = Classifier.get_property(self.filename, "multilingual")
-                self.config.args.omit_features = Classifier.get_property(self.filename, "omit_features")
-                self.init_model(init_params=False)
-                self.feature_extractor.load(self.filename, order=[p.name for p in self.param_defs()])
-                if not is_finalized:
-                    self.feature_extractor.unfinalize()
-                self._update_input_params()  # Must be before classifier.load() because it uses them to init the model
-                self.classifier.load(self.filename)
-                self.is_finalized = is_finalized
-                self.load_labels()
-                try:
-                    textutil.models.update(load_json(self.filename + ".nlp.json"))
-                    vocab = textutil.models.get("vocab")
-                    if vocab:
-                        self.config.args.vocab = vocab
-                except FileNotFoundError:
-                    pass
-                self.config.print("\n".join("%s: %s" % i for i in self.feature_params.items()), level=1)
-                for param_def in self.param_defs(self.config):
-                    param_def.load_to_config(self.feature_extractor.params)
+                textutil.models.update(load_json(self.filename + ".nlp.json"))
+                vocab = textutil.models.get("vocab")
+                if vocab:
+                    self.config.args.vocab = vocab
             except FileNotFoundError:
-                self.feature_extractor = self.classifier = None
-                raise
-            except Exception as e:
-                raise IOError("Failed loading model from '%s'" % self.filename) from e
+                pass
+            self.config.print("\n".join("%s: %s" % i for i in self.feature_params.items()), level=1)
+            for param_def in self.param_defs(self.config):
+                param_def.load_to_config(self.feature_extractor.params)
+        except FileNotFoundError:
+            self.feature_extractor = self.classifier = None
+            raise
+        except Exception as e:
+            raise IOError("Failed loading model from '%s'" % self.filename) from e
 
-    def restore(self, model, feature_extractor=None, classifier=None, is_finalized=None):
-        """
-        Set all attributes to a reference to existing model, except labels, which will be copied.
-        :param model: Model to restore
-        :param feature_extractor: optional FeatureExtractor to restore instead of model's
-        :param classifier: optional Classifier to restore instead of model's
-        :param is_finalized: whether the restored model is finalized
-        """
-        if is_finalized is None:
-            is_finalized = model.is_finalized
-        self.config.print("Restoring %sfinalized model" % ("" if is_finalized else "non-"), level=1)
-        self.filename = model.filename
-        self.feature_extractor = feature_extractor or model.feature_extractor
-        self.classifier = classifier or model.classifier
-        self.is_finalized = is_finalized
-        self._update_input_params()
-        self.classifier.labels_t = OrderedDict((a, l.save()) for a, l in self.classifier.labels.items())
-        self.load_labels()
 
-    def load_labels(self):
-        """
-        Copy classifier's labels to create new Actions/Labels objects
-        Restoring from a model that was just loaded from file, or called by restore()
-        """
-        for axis, all_size in self.classifier.labels_t.items():  # all_size is a pair of (label list, size limit)
-            if axis == NODE_LABEL_KEY:  # These are node labels rather than action labels
-                node_labels = self.feature_extractor.params.get(NODE_LABEL_KEY)
-                if node_labels and node_labels.size:  # Also used for features, so share the dict
-                    del all_size
-                    labels = node_labels.data
-                else:  # Not used as a feature, just get labels
-                    labels = UnknownDict() if self.is_finalized else AutoIncrementDict()
-                    labels.load(all_size)
-            else:  # Action labels for format determined by axis
-                labels = Actions(*all_size)
-            self.classifier.labels[axis] = labels
+def restore(self, model, feature_extractor=None, classifier=None, is_finalized=None):
+    """
+    Set all attributes to a reference to existing model, except labels, which will be copied.
+    :param model: Model to restore
+    :param feature_extractor: optional FeatureExtractor to restore instead of model's
+    :param classifier: optional Classifier to restore instead of model's
+    :param is_finalized: whether the restored model is finalized
+    """
+    if is_finalized is None:
+        is_finalized = model.is_finalized
+    self.config.print("Restoring %sfinalized model" % ("" if is_finalized else "non-"), level=1)
+    self.filename = model.filename
+    self.feature_extractor = feature_extractor or model.feature_extractor
+    self.classifier = classifier or model.classifier
+    self.is_finalized = is_finalized
+    self._update_input_params()
+    self.classifier.labels_t = OrderedDict((a, l.save()) for a, l in self.classifier.labels.items())
+    self.load_labels()
 
-    def _update_input_params(self):
-        self.feature_params = self.classifier.input_params = self.feature_extractor.params
 
-    def all_params(self):
-        d = OrderedDict()
-        d["features"] = self.feature_extractor.all_features()
-        d.update(("input_" + k, p.data.all) for k, p in self.feature_extractor.params.items() if p.data)
-        d.update(self.classifier.all_params())
-        return d
+def load_labels(self):
+    """
+    Copy classifier's labels to create new Actions/Labels objects
+    Restoring from a model that was just loaded from file, or called by restore()
+    """
+    for axis, all_size in self.classifier.labels_t.items():  # all_size is a pair of (label list, size limit)
+        if axis == NODE_LABEL_KEY:  # These are node labels rather than action labels
+            node_labels = self.feature_extractor.params.get(NODE_LABEL_KEY)
+            if node_labels and node_labels.size:  # Also used for features, so share the dict
+                del all_size
+                labels = node_labels.data
+            else:  # Not used as a feature, just get labels
+                labels = UnknownDict() if self.is_finalized else AutoIncrementDict()
+                labels.load(all_size)
+        else:  # Action labels for format determined by axis
+            labels = Actions(*all_size)
+        self.classifier.labels[axis] = labels
+
+
+def _update_input_params(self):
+    self.feature_params = self.classifier.input_params = self.feature_extractor.params
+
+
+def all_params(self):
+    d = OrderedDict()
+    d["features"] = self.feature_extractor.all_features()
+    d.update(("input_" + k, p.data.all) for k, p in self.feature_extractor.params.items() if p.data)
+    d.update(self.classifier.all_params())
+    return d

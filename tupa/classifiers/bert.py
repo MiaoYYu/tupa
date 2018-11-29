@@ -1,7 +1,7 @@
-import numpy as np
 import tensorflow as tf
+import numpy as np
 
-from .sub_model import SubModel
+from tupa.classifiers.nn.sub_model import SubModel
 
 class Bert(SubModel):
 	'''
