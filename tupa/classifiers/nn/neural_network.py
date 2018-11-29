@@ -70,8 +70,7 @@ class NeuralNetwork(Classifier, SubModel):
         for axis, labels in self.labels.items():
             if labels.size is not None:
                 num_labels = self.num_labels[axis]
-                assert num_labels <= labels.size, "Exceeded maximum number of labels at axis '%s': %d > %d:\n%s" % (
-                    axis, num_labels, labels.size, "\n".join(map(str, labels.all)))
+                assert num_labels <= labels.size, "Exceeded maximum number of labels at axis '%s': %d > %d:\n%s" % (axis, num_labels, labels.size, "\n".join(map(str, labels.all)))
 
     def init_model(self, axis=None, train=False):
         init = self.model is None
@@ -98,8 +97,7 @@ class NeuralNetwork(Classifier, SubModel):
             learning_rate_param_name = TRAINER_LEARNING_RATE_PARAM_NAMES.get(str(self.trainer_type))
             if learning_rate_param_name and self.learning_rate:
                 trainer_kwargs[learning_rate_param_name] = self.learning_rate
-            self.config.print("Initializing trainer=%s(%s)" % (
-                self.trainer_type, ", ".join("%s=%s" % (k, v) for k, v in trainer_kwargs.items())), level=4)
+            self.config.print("Initializing trainer=%s(%s)" % (self.trainer_type, ", ".join("%s=%s" % (k, v) for k, v in trainer_kwargs.items())), level=4)
             self.trainer = self.trainer_type()(self.model, **trainer_kwargs)
             self.trainer.set_sparse_updates(False)
 
@@ -149,8 +147,7 @@ class NeuralNetwork(Classifier, SubModel):
         for axis in axes:
             self.init_model(axis, train)
         embeddings = [[], []]  # specific, shared
-        self.config.print("Initializing %s %s features for %d elements" %
-                          (", ".join(axes), self.birnn_type.__name__, len(features)), level=4)
+        self.config.print("Initializing %s %s features for %d elements" % (", ".join(axes), self.birnn_type.__name__, len(features)), level=4)
         for key, indices in sorted(features.items()):
             param = self.input_params[key]
             lookup = self.params.get(key)
@@ -172,7 +169,8 @@ class NeuralNetwork(Classifier, SubModel):
             if param.numeric:
                 yield key, dy.inputVector(values)
             elif param.indexed:  # collect indices to be looked up
-                indices += values  # DenseFeatureExtractor collapsed features so there are no repetitions between them
+                indices += values  # DenseFeatureExtractor collapsed features so there are no repetitions
+                                   # between them
             elif lookup is None:  # ignored
                 continue
             else:  # lookup feature
@@ -285,11 +283,9 @@ class NeuralNetwork(Classifier, SubModel):
         return [self] + [m.mlp for m in axes] + [m.birnn for m in axes + [self]]
     
     def save_sub_model(self, d, *args):
-        return SubModel.save_sub_model(
-            self, d,
+        return SubModel.save_sub_model(self, d,
             ("loss", self.loss),
-            ("weight_decay", self.weight_decay),
-        )
+            ("weight_decay", self.weight_decay),)
 
     def load_sub_model(self, d, *args, **kwargs):
         d = SubModel.load_sub_model(self, d, *args, **kwargs)
@@ -363,8 +359,7 @@ class NeuralNetwork(Classifier, SubModel):
             if model.birnn.copy_shared:
                 model.birnn.load_sub_model(d, *shared_values, load_path=self.birnn.save_path)
                 if self.config.args.verbose <= 3:
-                    self.config.print(lambda: "Copied from %s to %s" %
-                                      ("/".join(self.birnn.save_path), model.birnn.params_str()), level=1)
+                    self.config.print(lambda: "Copied from %s to %s" % ("/".join(self.birnn.save_path), model.birnn.params_str()), level=1)
                 self.init_axis_model(axis, init=False)  # Update input_dim
 
     def params_num(self, d):

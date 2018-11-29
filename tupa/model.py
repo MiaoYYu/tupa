@@ -170,6 +170,10 @@ class Model:
                                                            node_dropout=self.config.args.node_dropout,
                                                            omit_features=self.config.args.omit_features)
             self.classifier = NeuralNetwork(self.config, labels)
+		elif self.is_bert:
+			from .classifiers.nn.bert import Bert
+			# TODO: Feature extractor
+			self.classifier = Bert()
         else:
             raise ValueError("Invalid model type: '%s'" % self.config.args.classifier)
         self._update_input_params()
@@ -189,6 +193,10 @@ class Model:
     @property
     def formats(self):
         return [k.partition(SEPARATOR)[0] for k in self.classifier.labels]
+
+	@property
+	def is_bert(self):
+		return self.config.args.classifier in (BERT)
 
     @property
     def is_neural_network(self):
