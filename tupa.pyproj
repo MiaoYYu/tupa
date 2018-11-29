@@ -11,7 +11,7 @@
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId>CondaEnv|CondaEnv|tensorflow</InterpreterId>
+    <InterpreterId>MSBuild|venv|$(MSBuildProjectFullPath)</InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -395,9 +395,6 @@
     <Compile Include="tupa\classifiers\classifier.py" />
     <Compile Include="tupa\classifiers\linear\sparse_perceptron.py" />
     <Compile Include="tupa\classifiers\linear\__init__.py" />
-    <Compile Include="tupa\classifiers\nn\bert.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="tupa\classifiers\nn\birnn.py" />
     <Compile Include="tupa\classifiers\nn\constants.py" />
     <Compile Include="tupa\classifiers\nn\mlp.py" />
@@ -458,7 +455,15 @@
     <Folder Include="tupa\states" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="CondaEnv|CondaEnv|tensorflow" />
+    <Interpreter Include="venv\">
+      <Id>venv</Id>
+      <Version>3.7</Version>
+      <Description>venv (Python 3.7 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
