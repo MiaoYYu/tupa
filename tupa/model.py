@@ -191,6 +191,7 @@ class Model:
             suffix = SEPARATOR + self.lang
         if not self.axis.endswith(suffix):
             self.axis += suffix
+        print('axis: ' + axis + 'lang: ' + lang)
 
     @property
     def formats(self):
