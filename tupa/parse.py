@@ -22,6 +22,8 @@ from tupa.oracle import Oracle
 from tupa.states.state import State
 from tupa.traceutil import set_traceback_listener
 
+from tupa.bert.bert import Bert
+
 
 class ParserException(Exception):
     pass
@@ -391,6 +393,21 @@ class Parser(AbstractParser):
         self.beam = beam  # Currently unused
         self.best_score = self.dev = self.test = self.iteration = self.epoch = self.batch = None
         self.trained = self.save_init = False
+
+    def bert_train(self, passages=None, dev=None, test=None, iterations=1):
+        """
+        Train (fine-tuning) the BERT parser on given passages.
+        :param passages: iterable of passages to train on
+        :param dev: iterable of passages to tune on
+        :param test: iterable of passages that would be tested on after train finished
+        :param iterations: iterable of Iterations objects whose i attributes are the number of iterations to perform
+        """
+        self.trained = True
+        self.dev = dev
+        self.test = test
+        # Do training.
+        if passages:
+            Bert()
 
     def train(self, passages=None, dev=None, test=None, iterations=1):
         """
