@@ -47,7 +47,7 @@ flags.DEFINE_bool(
     "since it is much faster.")
 
 
-class Bert():
+class Bert:
     '''
     Implementation of BERT.
     '''
@@ -56,10 +56,10 @@ class Bert():
         print('You are in BERT implementation class.')
         print(labels)
         tf.logging.set_verbosity(tf.logging.INFO)
-        layer_indexes = [int(x) for x in FLAGS.layers.split(",")]
-        bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
-        tokenizer = tokenization.FullTokenizer(
-            vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
+        # layer_indexes = [int(x) for x in FLAGS.layers.split(",")]
+        # bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
+        # tokenizer = tokenization.FullTokenizer(
+        #     vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
 
     def read_passage(self, passage):
         """

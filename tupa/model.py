@@ -189,9 +189,8 @@ class Model:
             self.lang = lang
         if self.lang is not None:
             suffix = SEPARATOR + self.lang
-        if not self.axis.endswith(suffix):
-            self.axis += suffix
-        print('axis: ' + axis + 'lang: ' + lang)
+            if not self.axis.endswith(suffix):
+                self.axis += suffix
 
     @property
     def formats(self):
