@@ -50,9 +50,15 @@ flags.DEFINE_bool(
 class Bert:
     '''
     Implementation of BERT.
+    tupa.action object: can be considered as labels.
+    ucca.passage object: UCCA standard passage object. Can be passed from parse.py file.
     '''
 
     def __init__(self, labels):
+        """
+        Construct the object.
+        :param labels: tupa.action object.
+        """
         print('You are in BERT implementation class.')
         print(labels)
         tf.logging.set_verbosity(tf.logging.INFO)
