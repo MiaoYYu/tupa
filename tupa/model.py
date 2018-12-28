@@ -5,7 +5,7 @@ from ucca import textutil
 
 from .action import Actions
 from .classifiers.classifier import Classifier
-from .config import Config, SEPARATOR, SPARSE, MLP, BIRNN, HIGHWAY_RNN, HIERARCHICAL_RNN, NOOP
+from .config import Config, SEPARATOR, SPARSE, MLP, BIRNN, HIGHWAY_RNN, HIERARCHICAL_RNN, NOOP, BERT
 from .features.feature_params import FeatureParameters
 from .model_util import UnknownDict, AutoIncrementDict, remove_backup, save_json, load_json
 
@@ -28,7 +28,7 @@ class ParameterDefinition:
     @property
     def enabled(self):
         return bool(getattr(self.args, self.dim_arg))
-    
+
     @enabled.setter
     def enabled(self, value):
         if value:
@@ -86,29 +86,30 @@ CLASSIFIER_PROPERTIES = {
     HIGHWAY_RNN: (ClassifierProperty.trainable_after_saving, ClassifierProperty.require_init_features),
     HIERARCHICAL_RNN: (ClassifierProperty.trainable_after_saving, ClassifierProperty.require_init_features),
     NOOP: (ClassifierProperty.trainable_after_saving,),
+    BERT: (ClassifierProperty.trainable_after_saving,),
 }
 
 NODE_LABEL_PARAM_DEFS = [
-    (NODE_LABEL_KEY, dict(dim="node_label_dim",    size="max_node_labels",    dropout="node_label_dropout",
+    (NODE_LABEL_KEY, dict(dim="node_label_dim", size="max_node_labels", dropout="node_label_dropout",
                           min_count="min_node_label_count"))
 ]
 PARAM_DEFS = [
-    ("c",            dict(dim="node_category_dim", size="max_node_categories")),
-    ("W",            dict(dim="word_dim_external", size="max_words_external", dropout="word_dropout_external",
-                          updated="update_word_vectors", filename="word_vectors", vocab="vocab"), dict(
-                                                                                 copy_from="w", lang_specific=True)),
-    ("w",            dict(dim="word_dim",       size="max_words",  dropout="word_dropout"),  dict(lang_specific=True)),
-    ("m",            dict(dim="lemma_dim",      size="max_lemmas", dropout="lemma_dropout"), dict(lang_specific=True)),
-    ("t",            dict(dim="tag_dim",        size="max_tags",   dropout="tag_dropout"),   dict(lang_specific=True)),
-    ("u",            dict(dim="pos_dim",        size="max_pos",    dropout="pos_dropout")),
-    ("d",            dict(dim="dep_dim",        size="max_deps",   dropout="dep_dropout")),
-    ("e",            dict(dim="edge_label_dim", size="max_edge_labels")),
-    ("p",            dict(dim="punct_dim",      size="max_puncts")),
-    ("A",            dict(dim="action_dim",     size="max_action_types")),
-    ("T",            dict(dim="ner_dim",        size="max_ner_types")),
-    ("#",            dict(dim="shape_dim",      size="max_shapes"),                          dict(lang_specific=True)),
-    ("^",            dict(dim="prefix_dim",     size="max_prefixes"),                        dict(lang_specific=True)),
-    ("$",            dict(dim="suffix_dim",     size="max_suffixes"),                        dict(lang_specific=True)),
+    ("c", dict(dim="node_category_dim", size="max_node_categories")),
+    ("W", dict(dim="word_dim_external", size="max_words_external", dropout="word_dropout_external",
+               updated="update_word_vectors", filename="word_vectors", vocab="vocab"), dict(
+        copy_from="w", lang_specific=True)),
+    ("w", dict(dim="word_dim", size="max_words", dropout="word_dropout"), dict(lang_specific=True)),
+    ("m", dict(dim="lemma_dim", size="max_lemmas", dropout="lemma_dropout"), dict(lang_specific=True)),
+    ("t", dict(dim="tag_dim", size="max_tags", dropout="tag_dropout"), dict(lang_specific=True)),
+    ("u", dict(dim="pos_dim", size="max_pos", dropout="pos_dropout")),
+    ("d", dict(dim="dep_dim", size="max_deps", dropout="dep_dropout")),
+    ("e", dict(dim="edge_label_dim", size="max_edge_labels")),
+    ("p", dict(dim="punct_dim", size="max_puncts")),
+    ("A", dict(dim="action_dim", size="max_action_types")),
+    ("T", dict(dim="ner_dim", size="max_ner_types")),
+    ("#", dict(dim="shape_dim", size="max_shapes"), dict(lang_specific=True)),
+    ("^", dict(dim="prefix_dim", size="max_prefixes"), dict(lang_specific=True)),
+    ("$", dict(dim="suffix_dim", size="max_suffixes"), dict(lang_specific=True)),
 ]
 
 
@@ -170,13 +171,14 @@ class Model:
                                                            node_dropout=self.config.args.node_dropout,
                                                            omit_features=self.config.args.omit_features)
             self.classifier = NeuralNetwork(self.config, labels)
-		elif self.is_bert:
-			from .classifiers.nn.bert import Bert
-			# TODO: Feature extractor
-			self.classifier = Bert()
+        elif self.is_bert:
+            from tupa.bert.bert import Bert
+            # TODO: Feature extractor
+            self.classifier = Bert(labels)
+
         else:
             raise ValueError("Invalid model type: '%s'" % self.config.args.classifier)
-        self._update_input_params()
+            self._update_input_params()
 
     def set_axis(self, axis, lang):
         if axis is not None:
@@ -194,9 +196,9 @@ class Model:
     def formats(self):
         return [k.partition(SEPARATOR)[0] for k in self.classifier.labels]
 
-	@property
-	def is_bert(self):
-		return self.config.args.classifier in (BERT)
+    @property
+    def is_bert(self):
+        return self.config.args.classifier in BERT
 
     @property
     def is_neural_network(self):
